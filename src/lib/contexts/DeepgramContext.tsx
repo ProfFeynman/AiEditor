@@ -1,3 +1,19 @@
+/**
+ * Deepgram Context Module
+ * 
+ * This module provides real-time speech-to-text functionality using Deepgram's WebSocket API.
+ * It manages the WebSocket connection, audio recording, and transcription state.
+ * 
+ * Features:
+ * - Real-time audio transcription
+ * - WebSocket connection management
+ * - Error handling
+ * - Audio recording controls
+ * 
+ * Required Environment Variables:
+ * - DEEPGRAM_API_KEY: Your Deepgram API key (accessed via API route)
+ */
+
 "use client";
 
 import {
@@ -11,11 +27,19 @@ import {
 
 import { createContext, useContext, useState, ReactNode, FunctionComponent, useRef } from "react";
 
+/**
+ * Interface defining the shape of the Deepgram context
+ */
 interface DeepgramContextType {
+  /** Function to establish WebSocket connection and start recording */
   connectToDeepgram: () => Promise<void>;
+  /** Function to close WebSocket connection and stop recording */
   disconnectFromDeepgram: () => void;
+  /** Current state of the WebSocket connection */
   connectionState: SOCKET_STATES;
+  /** Accumulated transcription text */
   realtimeTranscript: string;
+  /** Error message if any error occurs */
   error: string | null;
 }
 
@@ -25,12 +49,21 @@ interface DeepgramContextProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Fetches the Deepgram API key from the server
+ * @returns {Promise<string>} The Deepgram API key
+ */
 const getApiKey = async (): Promise<string> => {
   const response = await fetch("/api/deepgram", { cache: "no-store" });
   const result = await response.json();
   return result.key;
 };
 
+/**
+ * Deepgram Context Provider Component
+ * 
+ * Manages the state and functionality for real-time speech-to-text transcription
+ */
 const DeepgramContextProvider: FunctionComponent<DeepgramContextProviderProps> = ({ children }) => {
   const [connection, setConnection] = useState<WebSocket | null>(null);
   const [connectionState, setConnectionState] = useState<SOCKET_STATES>(SOCKET_STATES.closed);
@@ -38,6 +71,9 @@ const DeepgramContextProvider: FunctionComponent<DeepgramContextProviderProps> =
   const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<MediaRecorder | null>(null);
 
+  /**
+   * Establishes WebSocket connection to Deepgram and starts audio recording
+   */
   const connectToDeepgram = async () => {
     try {
       setError(null);
@@ -89,6 +125,9 @@ const DeepgramContextProvider: FunctionComponent<DeepgramContextProviderProps> =
     }
   };
 
+  /**
+   * Closes WebSocket connection and stops audio recording
+   */
   const disconnectFromDeepgram = () => {
     if (connection) {
       connection.close();
@@ -116,9 +155,25 @@ const DeepgramContextProvider: FunctionComponent<DeepgramContextProviderProps> =
   );
 };
 
-// Use the useDeepgram hook to access the deepgram context and use the deepgram in any component.
-// This allows you to connect to the deepgram and disconnect from the deepgram via a socket.
-// Make sure to wrap your application in a DeepgramContextProvider to use the deepgram.
+/**
+ * Custom hook for accessing Deepgram context
+ * 
+ * @example
+ * ```tsx
+ * const { connectToDeepgram, disconnectFromDeepgram, realtimeTranscript } = useDeepgram();
+ * 
+ * return (
+ *   <div>
+ *     <button onClick={connectToDeepgram}>Start Recording</button>
+ *     <button onClick={disconnectFromDeepgram}>Stop Recording</button>
+ *     <p>{realtimeTranscript}</p>
+ *   </div>
+ * );
+ * ```
+ * 
+ * @throws {Error} If used outside of DeepgramContextProvider
+ * @returns {DeepgramContextType} The Deepgram context object
+ */
 function useDeepgram(): DeepgramContextType {
   const context = useContext(DeepgramContext);
   if (context === undefined) {
